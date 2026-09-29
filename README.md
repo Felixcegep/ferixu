@@ -2,6 +2,10 @@
 
 Maquette minimaliste en **cinq pages distinctes** pour l'application de surveillance et d'arrosage d'une plante en pot. Les données et actions sont simulées : aucun capteur, relais, pompe ou feu n'est commandé.
 
+Les exigences fonctionnelles et les liens importants du projet se trouvent dans [EXIGENCES.md](EXIGENCES.md).
+
+Le dossier [raspberry_pi/](raspberry_pi/) contient une démo du capteur BH1750, des trois DEL et les instructions d’installation sur Raspberry Pi.
+
 ## Démarrer
 
 ```bash
