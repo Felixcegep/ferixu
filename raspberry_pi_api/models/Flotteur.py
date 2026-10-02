@@ -13,10 +13,12 @@ class Flotteur:
         self.bouton.when_released = self.lorsque_relache
 
     def lorsque_presse(self):
+        # quand ya pu deau
         print("Flotteur activé -> Relais ALLUMÉ")
         self.relais.on()
 
     def lorsque_relache(self):
+        # quand ya du leau
         print("Flotteur relâché -> Relais ÉTEINT")
         self.relais.off()
 
