@@ -4,22 +4,19 @@ import time
 import board
 import busio
 from adafruit_seesaw.seesaw import Seesaw
+from pydantic import BaseModel
 
-# Initialisation du bus I2C
+# Create I2C bus
 i2c_bus = busio.I2C(board.SCL, board.SDA)
 
-# Instanciation du capteur (adresse I2C par défaut : 0x36)
-ss = Seesaw(i2c_bus, addr=0x36)
 
-print("Lecture du capteur d'humidité STEMMA Soil Sensor...")
 
-while True:
-    # Lecture de l'humidité (valeur capacitive typique dans le sol : 300 à 500)
-    touch_value = ss.moisture_read()
+class SoilSensor(BaseModel):
+    ss = Seesaw(i2c_bus, addr=0x36)
 
-    # Lecture de la température en degrés Celsius
-    temp_c = ss.get_temp()
 
-    print(f"Humidité (capacitance) : {touch_value} | Température : {temp_c:.2f} °C")
+    def get_temp(self):
+        return self.ss.get_temp()
+    def get_moisture(self):
+        return self.ss.moisture_read()
 
-    time.sleep(2)
