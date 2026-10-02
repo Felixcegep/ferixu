@@ -1,8 +1,6 @@
 #Feu tricolore ARD-625
 
 
-
-import board
 from gpiozero import LED
 
 del_rouge = LED(27)
