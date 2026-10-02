@@ -38,7 +38,7 @@ Le commentaire du code initial indiquait GPIO 17, mais `LED(27)` utilise GPIO 27
    sudo apt install -y python3-venv python3-gpiozero python3-lgpio i2c-tools
    ```
 
-3. Depuis le dossier `raspberry_pi`, créez et activez un environnement Python :
+3. Depuis le dossier `raspberry_pi_api`, créez et activez un environnement Python :
 
    ```bash
    python3 -m venv --system-site-packages .venv
@@ -61,7 +61,7 @@ Le commentaire du code initial indiquait GPIO 17, mais `LED(27)` utilise GPIO 27
 
 ## Lancer le programme
 
-Depuis `raspberry_pi`, avec l’environnement virtuel activé :
+Depuis `raspberry_pi_api`, avec l’environnement virtuel activé :
 
 ```bash
 python luminosite_bh1750.py
