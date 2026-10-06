@@ -15,7 +15,8 @@ client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
 client.connect("localhost", 1883, 60)
 # boucle réseau en arrière-plan (garde en vie la connexion avec le broker)
 client.loop_start()
-
-payload = capteurLumiere.get_lux()
-payload["horodatage"] = datetime.now(timezone.utc).isoformat()
+payload = {
+    "lux": capteurLumiere.get_lux(),
+    "horodatage": datetime.now(timezone.utc).isoformat(),
+}
 client.publish("projet/mesures", json.dumps(payload))
