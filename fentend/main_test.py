@@ -17,7 +17,9 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 
 def on_message(client, userdata, msg):
+    
     mesure = json.loads(msg.payload.decode("utf-8"))
+    print(mesure)
     # JSON Lines : une mesure par ligne, ajoutée à la fin du fichier
     with open("donnees/lectures_capteurs.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(mesure) + "\n")
