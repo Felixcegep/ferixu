@@ -1,4 +1,16 @@
+# TODO 
+- faire le readme 
+- faire le flotteur
+- structurer le projet mieux 
+
+- connecter avec le UI
+
+
 # Pousse — maquette NiceGUI
+
+
+
+
 
 Maquette minimaliste en **cinq pages distinctes** pour l'application de surveillance et d'arrosage d'une plante en pot. Les données et actions sont simulées : aucun capteur, relais, pompe ou feu n'est commandé.
 
