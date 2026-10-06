@@ -6,7 +6,7 @@
       <excludeFolder url="file://$MODULE_DIR$/raspberry_pi_api/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/fentend/.venv" />
     </content>
-    <orderEntry type="jdk" jdkName="~\PycharmProjects\WelcomeScreen\ferixu\.venv" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="~/PycharmProjects/Ferixu/.venv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

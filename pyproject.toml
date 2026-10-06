@@ -2,7 +2,10 @@
 name = "ferixu"
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["nicegui>=3.0,<5.0"]
+dependencies = [
+    "nicegui>=3.0,<5.0",
+    "paho-mqtt>=2.1.0",
+]
 
 [dependency-groups]
 dev = [
