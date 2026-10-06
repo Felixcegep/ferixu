@@ -26,7 +26,7 @@ def on_message(client, userdata, msg):
 
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
-                     client_id="capteur-bh1750-001-publicateur")
+                     client_id="ferixu-frontend-subscriber")
 
 client.on_connect = on_connect
 client.on_message = on_message
