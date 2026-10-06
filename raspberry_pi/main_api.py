@@ -4,11 +4,13 @@ from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
 
 from capteurs.Bh1750 import CapteurLumiere
+from capteurs.Flotteur import Flotteur
 
 
 
 
 capteurLumiere = CapteurLumiere()
+capteurFlotteur = Flotteur()
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
                      client_id="capteur-bh1750-001-publicateur")
@@ -18,11 +20,17 @@ client.connect("localhost", 1883, 60)
 client.loop_start()
 try:
     while True:
-        payload = {
+        payloadLux = {
             "lux": capteurLumiere.get_lux(),
             "horodatage": datetime.now(timezone.utc).isoformat(),
         }
-        client.publish("ferixu/lux", json.dumps(payload))
+        payloadFlotteur = {
+            "vide": not capteurFlotteur.eau,
+            "horodatage": datetime.now(timezone.utc).isoformat(),
+        }
+
+        client.publish("ferixu/lux", json.dumps(payloadLux))
+        client.publish("ferixu/eau", json.dumps(payloadFlotteur))
         time.sleep(5)
 except KeyboardInterrupt:
     print("Arrêt du capteur.")

@@ -4,6 +4,8 @@ from signal import pause
 
 class Flotteur:
     def __init__(self, pin_flotteur=16, pin_relais=17):
+        self.eau = False
+
         # Initialisation des composants matériels
         self.bouton = Button(pin_flotteur, pull_up=True)
         self.relais = OutputDevice(pin_relais)
@@ -14,13 +16,13 @@ class Flotteur:
 
     def lorsque_presse(self):
         # quand ya pu deau
-        print("Flotteur activé -> Relais ALLUMÉ")
         self.relais.on()
+        self.eau = False
 
     def lorsque_relache(self):
         # quand ya du leau
-        print("Flotteur relâché -> Relais ÉTEINT")
         self.relais.off()
+        self.eau = True
 
 
 # --- Utilisation de la classe ---
