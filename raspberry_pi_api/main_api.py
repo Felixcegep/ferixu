@@ -19,4 +19,4 @@ payload = {
     "lux": capteurLumiere.get_lux(),
     "horodatage": datetime.now(timezone.utc).isoformat(),
 }
-client.publish("projet/mesures", json.dumps(payload))
+client.publish("ferixu/lux", json.dumps(payload))
