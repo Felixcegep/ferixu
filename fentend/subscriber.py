@@ -13,7 +13,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
         return
     print("Connecté au broker MQTT")
     # Abonnement ici : il est refait automatiquement après une reconnexion
-    client.subscribe("ferixu/lux")
+    #client.subscribe("ferixu/lux")
     client.subscribe("ferixu/eau")
 
 
