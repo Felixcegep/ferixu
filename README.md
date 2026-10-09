@@ -1,6 +1,5 @@
 # TODO 
 - faire le readme 
-- faire le flotteur
 - structurer le projet mieux 
 
 - connecter avec le UI
