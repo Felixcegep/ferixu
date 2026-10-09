@@ -1,39 +1,70 @@
 import json
-import time
+import asyncio
 from datetime import datetime, timezone
+
 import paho.mqtt.client as mqtt
 
-#from capteurs.Bh1750 import CapteurLumiere
 from capteurs.Flotteur import Flotteur
+# from capteurs.Bh1750 import CapteurLumiere
 
 
-
-
-#capteurLumiere = CapteurLumiere()
-capteurFlotteur = Flotteur()
-
-client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
-                     client_id="capteur-bh1750-001-publicateur")
-# broker, port, keepalive (s)
-client.connect("localhost", 1883, 60)
-# boucle réseau en arrière-plan (garde en vie la connexion avec le broker)
-client.loop_start()
-try:
+async def flotteurSender(flotteur, client, sleeptime=5):
     while True:
-        #payloadLux = {
-            #"lux": capteurLumiere.get_lux(),
-            #"horodatage": datetime.now(timezone.utc).isoformat(),
-        #}
         payloadFlotteur = {
-            "vide": not capteurFlotteur.eau,
+            "vide": not flotteur.eau,
             "horodatage": datetime.now(timezone.utc).isoformat(),
         }
 
-        #client.publish("ferixu/lux", json.dumps(payloadLux))
-        client.publish("ferixu/eau", json.dumps(payloadFlotteur))
-        time.sleep(5)
-except KeyboardInterrupt:
-    print("Arrêt du capteur.")
-finally:
-    client.loop_stop()
-    client.disconnect()
+        client.publish(
+            "ferixu/eau",
+            json.dumps(payloadFlotteur)
+        )
+
+        print("Flotteur envoyé :", payloadFlotteur)
+
+        await asyncio.sleep(sleeptime)
+
+
+async def lumiereSender(capteur, client, sleeptime=5):
+    while True:
+        payloadLux = {
+            "lux": capteur.get_lux(),
+            "horodatage": datetime.now(timezone.utc).isoformat(),
+        }
+
+        client.publish(
+            "ferixu/lux",
+            json.dumps(payloadLux)
+        )
+
+        print("Lux envoyé :", payloadLux)
+
+        await asyncio.sleep(sleeptime)
+
+
+async def main():
+
+    capteurFlotteur = Flotteur()
+    # capteurLumiere = CapteurLumiere()
+
+    client = mqtt.Client(
+        mqtt.CallbackAPIVersion.VERSION2,
+        client_id="ferixu-capteurs"
+    )
+
+    client.connect("localhost", 1883, 60)
+    client.loop_start()
+
+    try:
+        await asyncio.gather(
+            flotteurSender(capteurFlotteur, client, 5),
+            # lumiereSender(capteurLumiere, client, 10)
+        )
+
+    finally:
+        client.loop_stop()
+        client.disconnect()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
