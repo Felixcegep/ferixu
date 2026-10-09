@@ -1,32 +1,18 @@
-Installe des logiciels pour tout le système.
+# Installation rapide du broker MQTT
 
+Les instructions complètes d’installation du Raspberry Pi, de création de l’environnement Python, de collecte et d’enregistrement sont dans [README.md](README.md).
 
+Pour installer et démarrer le broker local :
+
+```bash
 sudo apt update
 sudo apt install -y mosquitto mosquitto-clients
-mosquitto est le broker lui-même ; mosquitto-clients fournit les commandes de test mosquitto_pub et mosquitto_sub.
-
-
-
-
-
-
+sudo systemctl enable --now mosquitto
 sudo systemctl status mosquitto
+```
 
+Le programme publie l’état du flotteur sur `ferixu/eau`. Pour l’observer :
 
-sudo systemctl enable mosquitto # Démarrage automatique au boot du Pi
-sudo systemctl start mosquitto 
-
-
-
-Terminal A : s'abonner
-
-
-mosquitto_sub -h localhost -t projet/bme680
-Terminal B : publier un message test
-
-
-
-
-Copy
-mosquitto_pub -h localhost -t projet/bme680 -m "test"
-Si le terminal A affiche test, le broker fonctionne.
+```bash
+mosquitto_sub -h localhost -t 'ferixu/#' -v
+```
