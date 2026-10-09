@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import paho.mqtt.client as mqtt
-from uvicorn.loops.asyncio import asyncio_loop_factory
 
 Path("donnees").mkdir(exist_ok=True)
 
