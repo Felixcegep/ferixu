@@ -4,6 +4,7 @@
 **Équipe :** Ferixu
 
 - [Remise — Partie 1 (10 %), le 20 octobre 2026](remise_partie_1.md)
+- [À faire au prochain cours : priorités et fonctions manquantes](todo_prochain_cours.md)
 - [Inventaire du matériel : quantités, liens produits et statuts](inventaire_materiel.md)
 - [Exigences fonctionnelles EF01 à EF24, états du feu et contrôles](exigences_fonctionnelles.md)
 
