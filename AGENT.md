@@ -1,16 +1,5 @@
-NOMMANT clature python 
+# Instructions du projet
 
-Règle simple :
+Les instructions à jour sont dans [AGENTS.md](AGENTS.md), le fichier reconnu par les agents pour ce dépôt.
 
-Folder → snake_case
-
-Fichier → snake_case
-
-Classe → PascalCase
-
-Fonction → snake_case
-
-
-
-
-fent_end 
+Elles prennent en compte les exigences fonctionnelles, l’inventaire du matériel et les consignes de la première remise du 20 octobre 2026.
