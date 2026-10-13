@@ -7,17 +7,17 @@ importe donc uniquement lorsqu'un composant est demandé explicitement.
 from importlib import import_module
 
 __all__ = [
+    "Capteur",
     "CapteurLumiere",
-    "FeuCirculation",
     "Flotteur",
     "SoilSensor",
 ]
 
 _MODULES = {
-    "CapteurLumiere": ".Bh1750",
-    "FeuCirculation": ".ARD625",
-    "Flotteur": ".Flotteur",
-    "SoilSensor": ".Soil_Sensor",
+    "Capteur": ".capteur",
+    "CapteurLumiere": ".capteur_bh1750",
+    "Flotteur": ".flotteur",
+    "SoilSensor": ".capteur_sol",
 }
 
 

@@ -6,6 +6,7 @@ from gpiozero import LED
 
 
 class FeuCirculation:
+    # mettre dans global :) config
     del_rouge = LED(27)
     del_jaune = LED(22)
     del_verte = LED(23)

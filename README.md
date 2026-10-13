@@ -6,8 +6,8 @@ Pousse est un projet d’objets connectés pour surveiller une plante en pot et 
 
 Le dossier `raspberry_pi/` contient les deux programmes MQTT :
 
-- [publicateur.py](raspberry_pi/publicateur.py) lit l’interrupteur à flotteur et publie l’état du réservoir toutes les 5 secondes sur `ferixu/eau`, avec un horodatage UTC.
-- [subscriber.py](raspberry_pi/subscriber.py) s’abonne à ce topic, affiche les mesures reçues et les ajoute à `donnees/lectures_capteurs.jsonl`, dans le dossier depuis lequel il est lancé.
+- [publicateur_mqtt.py](raspberry_pi/publication_donnees/publicateur_mqtt.py) lit l’interrupteur à flotteur et publie l’état du réservoir toutes les 5 secondes sur `ferixu/eau`, avec un horodatage UTC.
+- [service_ingestion.py](raspberry_pi/ingestion/service_ingestion.py) s’abonne à ce topic, affiche les mesures reçues et les ajoute à `donnees/lectures_capteurs.jsonl`, dans le dossier depuis lequel il est lancé.
 
 Les deux programmes utilisent le broker MQTT local sur `localhost:1883` et se lancent dans deux terminaux distincts. La publication du BH1750 est commentée pour le moment.
 
@@ -20,7 +20,7 @@ Les exigences prévues, leurs seuils et leurs règles sont détaillés dans [EXI
 | Composant | Rôle prévu | État dans le code |
 | --- | --- | --- |
 | Interrupteur à flotteur SENS-112-200 | Détecter si le réservoir contient de l’eau | Lu et publié sur `ferixu/eau` toutes les 5 secondes |
-| BH1750 (#4681) | Mesurer la luminosité en lux sur I²C | Pilote présent; lecture et publication désactivées dans `publicateur.py` |
+| BH1750 (#4681) | Mesurer la luminosité en lux sur I²C | Pilote présent; lecture et publication désactivées dans `publication_donnees/publicateur_mqtt.py` |
 | STEMMA Soil Sensor (#4026) | Mesurer l’humidité et la température du sol sur I²C | Pilote présent; pas encore utilisé par le programme de collecte |
 | Feu tricolore ARD-625 | Afficher l’état de la plante | Pilote présent; pas intégré à la logique du programme |
 | Relais STEMMA (#4409) et pompe 3 V (#4547) | Arroser selon les seuils et les commandes | Pas encore implémentés dans le programme actif |

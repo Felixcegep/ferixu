@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
 
-from capteurs.Flotteur import Flotteur
-# from capteurs.Bh1750 import CapteurLumiere
+from ..capteurs.flotteur import Flotteur
+# from ..capteurs.capteur_bh1750 import CapteurLumiere
 
 
 async def flotteurSender(flotteur, client, sleeptime=5):
