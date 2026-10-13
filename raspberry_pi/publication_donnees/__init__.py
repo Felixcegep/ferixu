@@ -1,1 +1,5 @@
-"""Paquet publication_donnees du Raspberry Pi."""
+"""Communication MQTT du Raspberry Pi."""
+
+from .publicateur_mqtt import PublicateurMQTT
+
+__all__ = ["PublicateurMQTT"]
