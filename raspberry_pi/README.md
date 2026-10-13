@@ -4,12 +4,12 @@ Ce dossier contient deux programmes à lancer ensemble dans des terminaux distin
 
 | Programme | Rôle |
 | --- | --- |
-| [publicateur_mqtt.py](publication_donnees/publicateur_mqtt.py) | Lire l’interrupteur à flotteur et publier l’état du réservoir sur `ferixu/eau` toutes les 5 secondes |
+| [publicateur_mqtt.py](publication_donnees/publicateur_mqtt.py) | Classe `PublicateurMQTT` appelée par `main.py` pour publier l’état du réservoir sur `ferixu/eau` toutes les 10 minutes |
 | [service_ingestion.py](ingestion/service_ingestion.py) | Recevoir les messages de `ferixu/eau`, les afficher et les enregistrer en JSON Lines |
 
-Le trajet des données est : **flotteur → publicateur → broker MQTT local → subscriber → fichier JSON Lines**. Les deux scripts se connectent à `localhost:1883`; les instructions ci-dessous les exécutent donc sur le même Raspberry Pi. La fréquence de publication actuelle ne correspond pas encore aux exigences fonctionnelles, qui demandent une vérification toutes les 10 minutes.
+Le trajet des données est : **flotteur → publicateur → broker MQTT local → subscriber → fichier JSON Lines**. Les deux scripts se connectent à `localhost:1883`; les instructions ci-dessous les exécutent donc sur le même Raspberry Pi. Une première mesure est publiée immédiatement au démarrage.
 
-La lecture du BH1750 a été commentée dans `publication_donnees/publicateur_mqtt.py`. Les pilotes du BH1750, du STEMMA Soil Sensor et du feu ARD-625 sont présents, mais ces composants ne sont pas encore utilisés par le programme actif. La pompe et sa logique de déclenchement ne sont pas implémentées. La maquette de l’interface est simulée et n’est pas reliée à ces messages.
+Seul le flotteur est utilisé par `main.py`. Les pilotes du BH1750, du STEMMA Soil Sensor et du feu ARD-625 sont présents, mais ces composants ne sont pas encore utilisés par le programme actif. La pompe et sa logique de déclenchement ne sont pas implémentées. La maquette de l’interface est simulée et n’est pas reliée à ces messages.
 
 ## Matériel et branchements
 
@@ -50,13 +50,14 @@ Dans un terminal, depuis la racine du dépôt, lancez le publicateur :
 
 ```bash
 source raspberry_pi/.venv/bin/activate
-python -m raspberry_pi.publication_donnees.publicateur_mqtt
+cd raspberry_pi
+python main.py
 ```
 
 Le broker doit être actif sur `localhost:1883`. Le programme publie sur le topic `ferixu/eau` un objet JSON de cette forme :
 
 ```json
-{"vide": false, "horodatage": "2026-10-09T12:00:00+00:00"}
+{"etat": "suffisant", "vide": false, "horodatage": "2026-10-09T12:00:00+00:00"}
 ```
 
 L’horodatage est au format ISO 8601 en UTC. Appuyez sur `Ctrl+C` pour arrêter le publicateur.
@@ -107,3 +108,13 @@ raspberry_pi/
 `capteur.py` définit la classe abstraite `Capteur`; `flotteur.py` contient le pilote `Flotteur` existant.
 Les pilotes BH1750 et STEMMA existants sont conservés.
 Les programmes se lancent avec `python -m` depuis la racine du dépôt.
+
+## Lancement direct avec le flotteur
+
+Depuis le dossier `raspberry_pi`, après activation du `.venv` :
+
+```bash
+python main.py
+```
+
+`config.py` définit le broker (`localhost:1883`), le GPIO BCM 16 et la période de lecture (600 secondes). La première lecture est immédiate. Le publicateur attend la confirmation MQTT avec QoS 1 et conserve l’horodatage d’acquisition. `Ctrl+C` arrête le thread et libère le GPIO. Seul le flotteur est activé; les autres capteurs et les actionneurs ne sont pas chargés.
