@@ -2,13 +2,13 @@
 
 from datetime import datetime, timezone
 
-from gpiozero import Button
 
 from .capteur import Capteur
 
 
 class Flotteur(Capteur):
     def __init__(self, pin_flotteur=16, periode_lecture=600):
+        from gpiozero import Button
         super().__init__("réservoir", periode_lecture)
         self.bouton = Button(pin_flotteur)
 
