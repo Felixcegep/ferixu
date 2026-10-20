@@ -1,55 +1,87 @@
-# Pousse — surveillance et arrosage d’une plante
+# Pousse — Ferixu
 
-Pousse est un projet d’objets connectés pour surveiller une plante en pot et automatiser son arrosage. Le dépôt contient une maquette d’interface NiceGUI et des programmes MQTT pour le Raspberry Pi.
+Système de surveillance et d'arrosage prévu pour un basilic en pot avec un Raspberry Pi 4, des capteurs et des actionneurs.
 
-## Première remise
+La [remise de la partie 1](documentation/remise_partie_1.md) est prévue le **20 octobre 2026 (10 %)**. Les [spécifications corrigées EF01 à EF24](documentation/exigences_fonctionnelles.md) décrivent les comportements attendus; l'[inventaire](documentation/inventaire_materiel.md) distingue les composants reçus, alternatifs et non reçus.
 
-La remise de la partie 1 vaut **10 %** et aura lieu le **20 octobre 2026**, avec une présentation en équipe en classe. Les [consignes et critères d’évaluation](documentation/remise_partie_1.md) détaillent le code à remettre et la démonstration attendue.
+## État du code
 
-## État actuel
+- Le flotteur est lu et horodaté en UTC immédiatement, puis toutes les 10 minutes.
+- Les mesures sont publiées vers le broker MQTT local; un service distinct les reçoit et les enregistre en JSON Lines.
+- Le feu rouge est commandé lorsque le réservoir est insuffisant (EF12); le feu reste éteint quand les autres conditions globales sont inconnues.
+- Un capteur absent ou en erreur est signalé comme indisponible, sans fausse mesure; les autres lectures continuent et une reconnexion est tentée à la prochaine échéance.
+- Le BH1750 et le sol peuvent être activés explicitement avec `--lumiere` et `--sol`, aux périodes prévues de 60 et 600 secondes. Le sol nécessite une calibration pour produire un pourcentage.
+- Le pilote sécurisé de pompe est présent, mais non activé dans le programme principal. La logique d'arrosage automatique reste à intégrer.
+- L'interface NiceGUI est une **maquette simulée**; elle ne reçoit pas les mesures MQTT et ne commande aucun composant.
 
-Le dossier `raspberry_pi/` contient les deux programmes MQTT :
+Les tests logiciels ont réussi avec des GPIO simulés et un vrai broker local. **Le montage physique et le fonctionnement sur Raspberry Pi restent à valider.** La liste détaillée des fonctions restantes est dans [le suivi de la remise](documentation/todo_prochain_cours.md).
 
-- [publicateur_mqtt.py](raspberry_pi/publication_donnees/publicateur_mqtt.py) assure la communication MQTT; `main.py` lit l’interrupteur à flotteur et publie l’état du réservoir toutes les 10 minutes sur `ferixu/eau`, avec un horodatage UTC.
-- [service_ingestion.py](raspberry_pi/ingestion/service_ingestion.py) s’abonne à ce topic, affiche les mesures reçues et les ajoute à `donnees/lectures_capteurs.jsonl`, dans le dossier depuis lequel il est lancé.
+## Installation et démonstration Raspberry Pi
 
-Les deux programmes utilisent le broker MQTT local sur `localhost:1883` et se lancent dans deux terminaux distincts. Seul le flotteur est utilisé par `main.py`.
+Les instructions complètes de matériel, câblage, `.venv`, dépendances, broker, topics, payloads et démonstration sont dans [raspberry_pi/README.md](raspberry_pi/README.md).
 
-Les pilotes du BH1750, du STEMMA Soil Sensor et du feu ARD-625 sont présents, mais ils ne sont pas intégrés au programme de collecte actif. L’humidité et la température du sol ne sont donc pas mesurées par le programme principal; la commande de la pompe n’est pas implémentée. La maquette NiceGUI est également simulée et n’est pas connectée au broker ni au matériel.
+Après l'installation des paquets système indiqués dans ce document, depuis la racine :
 
-La [documentation du projet](documentation/README.md) regroupe les composants, la fiche du basilic et l’[inventaire du matériel](documentation/inventaire_materiel.md). Les exigences prévues, leurs seuils et leurs règles sont détaillés dans [documentation/exigences_fonctionnelles.md](documentation/exigences_fonctionnelles.md). Les fonctions ci-dessus décrivent l’état réellement présent dans le code.
+```bash
+python3 -m venv --system-site-packages raspberry_pi/.venv
+source raspberry_pi/.venv/bin/activate
+python -m pip install -r raspberry_pi/requirements.txt
+```
 
-## Capteurs et actionneurs
+Configurer `.env` à partir de `.env.example` pour `localhost:1883`. Démarrer Mosquitto puis, dans deux terminaux avec le `.venv` activé :
 
-| Composant | Rôle prévu | État dans le code |
-| --- | --- | --- |
-| Interrupteur à flotteur SENS-112-200 | Détecter si le réservoir contient de l’eau | Lu et publié sur `ferixu/eau` toutes les 10 minutes |
-| BH1750 (#4681) | Mesurer la luminosité en lux sur I²C | Pilote présent; pas utilisé par `main.py` |
-| STEMMA Soil Sensor (#4026) | Mesurer l’humidité et la température du sol sur I²C | Pilote présent; pas encore utilisé par le programme de collecte |
-| Feu tricolore ARD-625 | Afficher l’état de la plante | Pilote présent; pas intégré à la logique du programme |
-| Relais STEMMA (#4409) et pompe 3 V (#4547) | Arroser selon les seuils et les commandes | Pas encore implémentés dans le programme actif |
+```bash
+# Terminal A : attendre « Ingestion prête ».
+python -m raspberry_pi.ingestion.service_ingestion
+```
 
-Les procédures d’installation et de démonstration sur le Raspberry Pi sont dans [raspberry_pi/README.md](raspberry_pi/README.md).
+```bash
+# Terminal B : flotteur réel et feu.
+python -m raspberry_pi.main
+```
+
+Les données se trouvent dans `donnees/lectures_capteurs.jsonl` à la racine :
+
+```bash
+tail -f donnees/lectures_capteurs.jsonl
+mosquitto_sub -h localhost -t 'ferixu/#' -q 1 -v
+```
+
+`Ctrl+C` arrête la collecte et libère les ressources. Les broches et polarités doivent correspondre au montage réel avant tout lancement.
+
+## Structure
+
+```text
+raspberry_pi/
+├── config.py               # Configuration .env, broches BCM, fréquences
+├── main.py                 # Acquisition périodique et orchestration
+├── mesures.py              # Validation des payloads horodatés
+├── logique_decision.py     # Règle EF12 du feu, indépendante de MQTT
+├── capteurs/               # Classe abstraite et pilotes
+├── actionneurs/            # Feu et pompe (pompe non activée)
+├── publication_donnees/    # Client publicateur MQTT
+├── ingestion/             # Abonnement et enregistrement du fichier
+└── tests/                 # Tests ciblés et essai Mosquitto local
+```
 
 ## Maquette NiceGUI
 
-La maquette contient cinq pages : état normal, surveillance, alerte, contrôles et paramètres. Elle permet de parcourir les principaux scénarios d’interface. Ses mesures et ses actions sont simulées : les boutons ne commandent pas les composants physiques.
-
-À la racine du dépôt, installez les dépendances avec [uv](https://docs.astral.sh/uv/) et démarrez l’application :
+Installer dans un environnement distinct des dépendances matérielles :
 
 ```bash
-uv sync
-uv run python frontend/main.py
+python3 -m venv frontend/.venv
+source frontend/.venv/bin/activate
+python -m pip install -r frontend/requirements.txt
+python frontend/main.py
 ```
 
-Ouvrez <http://localhost:8080>.
+Ouvrir <http://localhost:8080>. L'installation avec `uv sync` puis `uv run python frontend/main.py` reste possible. Pour le parcours d'intégration de la maquette, garder le serveur démarré et utiliser `uv run pytest -q frontend/tests/test_maquette_integration.py`. Au besoin, installer Chromium avec `uv run playwright install chromium`.
 
-## Vérification de la maquette
-
-Dans un premier terminal, laissez l’application démarrée. Dans un second terminal, lancez le test d’intégration :
+## Vérification de la collecte
 
 ```bash
-uv run pytest -q frontend/tests/test_maquette_integration.py
+python -m pip install -r raspberry_pi/tests/requirements.txt
+python -m pytest -q raspberry_pi/tests
 ```
 
-Le test pilote les pages et génère des captures dans `maquettes/`. Si aucun navigateur compatible n’est installé, installez Chromium avec `uv run playwright install chromium`.
+Ces tests vérifient le logiciel; ils ne valident pas le câblage ou la calibration du montage physique.

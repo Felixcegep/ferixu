@@ -78,3 +78,21 @@ La présentation sert à valider le montage physique, l’acquisition des donné
 - [Installation et collecte sur le Raspberry Pi](../raspberry_pi/README.md)
 
 Ces consignes définissent les attentes de la remise ; elles ne constituent pas une validation de l’état actuel du code ou du montage.
+
+## Déroulement de la présentation
+
+### Préparation — 60 minutes maximum
+
+En début de période : vérifier le montage; établir SSH et ouvrir l'IDE distant; démarrer le broker MQTT et s'assurer que le code est à jour sur le Pi; tester une fois toute la chaîne **acquisition → publication → réception → écriture dans le fichier → déclenchement d'un actionneur**.
+
+### Présentation par équipe — environ 10 à 15 minutes
+
+| Étape | Durée annoncée | Éléments à montrer |
+| --- | --- | --- |
+| Montage | 2 min | Capteurs/actionneurs, broches, protocole et alimentation |
+| Environnement | 2 min | SSH, `.venv` et `requirements.txt` |
+| Démonstration en direct | 5 min | Capteur réel horodaté, broker local, réception et fichier, actionneur selon une exigence; condition réelle ou explicitement simulée |
+| Survol du code | 2 à 3 min | Structure, classes, acquisition, décision et MQTT |
+| Questions | 2 à 3 min | Réponses à l'enseignante |
+
+Pendant les présentations, les autres équipes poursuivent leur préparation ou l'intégration du reste des capteurs et actionneurs. Les durées ci-dessus reprennent le déroulement fourni; aucune pondération additionnelle n'est présumée.
