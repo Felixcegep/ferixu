@@ -3,3 +3,7 @@ __pycache__/
 *.py[cod]
 .nicegui/
 .env
+
+# Mesures locales et caches de tests
+donnees/
+.pytest_cache/
