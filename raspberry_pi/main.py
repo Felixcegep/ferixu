@@ -1,12 +1,13 @@
-"""Flotteur et feu dans le thread principal; publication MQTT séparée.
+"""Flotteur, BH1750 et feu dans le thread principal; publication MQTT séparée.
 
 Structure adaptée de la démo de la prof :
 https://github.com/5P0-Integration-d-objets-connectes/demo-broker-thread/blob/main/main.py
 """
 import threading
+import time
 
 import config
-from capteurs import Flotteur
+from capteurs import Flotteur, CapteurLumiere
 from actionneurs import FeuCirculation
 from logique_decision import mettre_a_jour_feu
 from publication_donnees import PublicateurMQTT
@@ -29,8 +30,8 @@ def publier_mesures_en_attente():
     with verrou:
         mesures = mesures_en_attente.copy()
         mesures_en_attente.clear()
-    for mesure in mesures:
-        publicateur.publier(config.TOPIC_EAU, mesure)
+    for topic, mesure in mesures:
+        publicateur.publier(topic, mesure)
 
 
 def boucle_publication():
@@ -46,8 +47,14 @@ def boucle_publication():
         arret.set()
 
 
+def creer_bus_i2c():
+    """Crée le bus dans le programme principal, comme dans la démo de la prof."""
+    import board
+    return board.I2C()
+
+
 def main():
-    """Lit le flotteur et commande le feu pendant que le thread publie."""
+    """Lit les capteurs à leurs périodes respectives pendant que le thread publie."""
     global mesures_en_attente, verrou, arret, publicateur
 
     # Partagé entre les deux threads, comme le compteur de la démo.
@@ -57,6 +64,8 @@ def main():
     arret = threading.Event()
     thread_publication = None
     flotteur = None
+    i2c = None
+    capteur_lumiere = None
     feu = None
     publicateur = None
     try:
@@ -69,15 +78,37 @@ def main():
         thread_publication = threading.Thread(target=boucle_publication)
         thread_publication.start()
 
+        # Horloge monotone pour séparer EF03 (60 s) et EF05 (600 s).
+        prochaine_eau = time.monotonic()
+        prochaine_lumiere = prochaine_eau
         while not arret.is_set():
-            mesure = flotteur.lire()
-            mettre_a_jour_feu(feu, mesure)
-            # Section protégée, comme le compteur partagé de la démo.
-            with verrou:
-                mesures_en_attente.append(mesure)
-            # Contrairement à sleep(600), cette attente se réveille aussi si
-            # le thread MQTT signale un problème et demande l'arrêt.
-            arret.wait(flotteur.periode_lecture)
+            maintenant = time.monotonic()
+            if maintenant >= prochaine_eau:
+                mesure = flotteur.lire()
+                mettre_a_jour_feu(feu, mesure)
+                with verrou:
+                    mesures_en_attente.append((config.TOPIC_EAU, mesure))
+                prochaine_eau = maintenant + flotteur.periode_lecture
+
+            if maintenant >= prochaine_lumiere:
+                try:
+                    if i2c is None:
+                        i2c = creer_bus_i2c()
+                    if capteur_lumiere is None:
+                        capteur_lumiere = CapteurLumiere(i2c, config.PERIODE_LECTURE_LUMIERE)
+                    mesure = capteur_lumiere.lire()
+                except (OSError, RuntimeError, ValueError, ImportError) as erreur:
+                    # Ne pas transformer une absence/erreur en mesure de zéro lux.
+                    print(f"BH1750 indisponible : {erreur}; nouvelle tentative dans 60 s.")
+                    capteur_lumiere = None
+                else:
+                    with verrou:
+                        mesures_en_attente.append((config.TOPIC_LUMIERE, mesure))
+                prochaine_lumiere = maintenant + config.PERIODE_LECTURE_LUMIERE
+
+            # Attendre la prochaine lecture, sans bloquer le thread MQTT.
+            attente = min(prochaine_eau, prochaine_lumiere) - time.monotonic()
+            arret.wait(max(0, attente))
     except KeyboardInterrupt:
         print("Arrêt de la lecture de données…")
     finally:
@@ -95,8 +126,13 @@ def main():
                 if flotteur is not None:
                     flotteur.fermer()
             finally:
-                if feu is not None:
-                    feu.fermer()
+                try:
+                    if feu is not None:
+                        feu.fermer()
+                finally:
+                    # Le pilote reçoit ce bus; c'est donc main.py qui le libère.
+                    if i2c is not None:
+                        i2c.deinit()
 
 
 if __name__ == "__main__":

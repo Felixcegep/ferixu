@@ -45,4 +45,13 @@ def test_erreur_ecriture_signalee(ingestion, tmp_path, monkeypatch, capsys):
 def test_abonnement_refait_a_la_connexion(ingestion):
     client = Mock()
     ingestion.on_connect(client, None, None, SimpleNamespace(is_failure=False), None)
-    client.subscribe.assert_called_once_with(ingestion.config.TOPIC_EAU)
+    client.subscribe.assert_any_call(ingestion.config.TOPIC_EAU)
+    client.subscribe.assert_any_call(ingestion.config.TOPIC_LUMIERE)
+    assert client.subscribe.call_count == 2
+
+
+def test_luminosite_enregistree_avec_horodatage(ingestion):
+    mesure = {'lux': 12345.0, 'horodatage': '2026-10-20T14:00:00+00:00'}
+    ingestion.on_message(None, None, SimpleNamespace(
+        topic=ingestion.config.TOPIC_LUMIERE, payload=json.dumps(mesure).encode()))
+    assert json.loads(ingestion.FICHIER_DONNEES.read_text()) == mesure

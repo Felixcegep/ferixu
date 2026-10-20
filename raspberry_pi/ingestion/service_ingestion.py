@@ -15,6 +15,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
         return
     print("Connecté au broker MQTT")
     client.subscribe(config.TOPIC_EAU)
+    client.subscribe(config.TOPIC_LUMIERE)
 
 
 def on_message(client, userdata, msg):

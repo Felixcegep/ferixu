@@ -7,10 +7,10 @@ Objectif du cours : obtenir une chaîne complète et démontrable **capteur rée
 
 ## Ce qui est déjà présent
 
-- `raspberry_pi/main.py` lit le flotteur immédiatement, puis toutes les 10 minutes dans le thread principal. Comme dans la démo de la prof, un thread MQTT séparé publie les acquisitions en attente toutes les 10 secondes, avec une liste partagée protégée par `Lock` et un `Event` d’arrêt.
+- `raspberry_pi/main.py` lit le flotteur immédiatement dans le thread principal, puis à la période configurée (5 s pour les essais locaux, 600 s requises par EF05). Comme dans la démo de la prof, un thread MQTT séparé publie les acquisitions en attente à la période configurée (5 s actuellement), avec une liste partagée protégée par `Lock` et un `Event` d’arrêt.
 - Le publicateur envoie l’état du réservoir sur `ferixu/eau`, avec un horodatage ISO 8601 en UTC et QoS 1.
-- Le subscriber reçoit ce topic et ajoute les messages à `donnees/lectures_capteurs.jsonl` en conservant leur horodatage.
-- Les pilotes du BH1750 et du capteur de sol restent hors du programme actif. Le feu est intégré pour le scénario réservoir insuffisant → rouge (EF12), éteint sinon. Le fichier de la pompe ne contient pas encore d’implémentation.
+- Le subscriber reçoit les topics du réservoir et de la lumière et ajoute les messages à `donnees/lectures_capteurs.jsonl` en conservant leur horodatage.
+- Le BH1750 est intégré : lecture toutes les 60 s, publication sur `ferixu/lumiere` et enregistrement par le subscriber. Le capteur de sol reste hors du programme actif. Le feu est intégré pour le scénario réservoir insuffisant → rouge (EF12), éteint sinon. Le fichier de la pompe ne contient pas encore d’implémentation.
 - L’interface NiceGUI est une maquette simulée ; elle ne reçoit pas les mesures réelles et ne commande pas le matériel.
 
 **Ces éléments décrivent le code présent, pas un montage validé. Les essais matériels restent à effectuer.**
@@ -43,7 +43,7 @@ Le feu tricolore est indiqué « reçu » dans l’inventaire. Un premier scéna
 
 - [ ] Gérer dans le subscriber un JSON invalide, un payload incomplet, un problème d’écriture du fichier et une connexion MQTT impossible, avec des messages compréhensibles.
 - [ ] Tester un broker indisponible et une lecture de capteur en erreur ; ne jamais remplacer une erreur par une mesure valide ou une autorisation d’arrosage.
-- [x] Aligner les pilotes I²C sur `Capteur` avec bus fourni au constructeur, supprimer leurs initialisations matérielles à l’import et corriger les dépendances. Leur intégration et leur validation sur le Pi restent à faire.
+- [x] Aligner les pilotes I²C sur `Capteur` avec bus fourni au constructeur, supprimer leurs initialisations matérielles à l’import et corriger les dépendances. Le BH1750 est intégré; l’intégration du sol et la validation matérielle des deux restent à faire.
 - [ ] Mettre à jour les README avec le montage réellement utilisé, les broches BCM/physiques, les alimentations, les bus, les topics, les payloads et les commandes vérifiées.
 - [ ] Corriger le lien `../EXIGENCES.md` du README Raspberry Pi vers `../documentation/exigences_fonctionnelles.md` et clarifier les instructions de lancement.
 - [ ] Préparer une courte procédure de démonstration : démarrage du broker, subscriber, collecte, changement du flotteur, consultation du fichier et déclenchement du feu.
@@ -56,7 +56,7 @@ Ces tâches complètent les exigences du projet. La priorité du prochain cours 
 | Partie | Travail restant |
 | --- | --- |
 | Sol — EF01, EF02 | Intégrer l’humidité et la température ensemble toutes les 10 minutes, avec horodatage. Identifier le capteur alternatif et documenter sa calibration avant toute conversion en %. |
-| Luminosité — EF03, EF04 | Intégrer une mesure par minute, le seuil de 10 000 lux et le cumul quotidien. Vérifier l’intervalle minimal dans la documentation du matériel ; la constante actuelle de 1 seconde ne correspond pas à la fréquence fonctionnelle attendue. |
+| Luminosité — EF03, EF04 | Lecture toutes les 60 s intégrée et testée en simulation; valider sur le Pi. Ajouter le cumul quotidien au seuil de 10 000 lux. Le pilote fabricant attend 180 ms pour la conversion, compatible avec la période de 60 s. |
 | Réservoir — EF05 | Synchroniser sa lecture avec le sol et ajouter les vérifications immédiatement avant et après chaque activation de la pompe. |
 | Pompe et relais — EF06 à EF09 | Implémenter les pilotes et la décision : humidité sous 30 %, mode automatique actif, eau suffisante, 3 secondes, délai minimal de 30 minutes et maximum de 6 arrosages automatiques par période de 24 heures. |
 | Sécurité de la pompe — EF07, EF14, EF16 | Refuser toute activation si l’eau est insuffisante ou si sa lecture échoue, y compris en manuel et en test. Limiter le test à 3 secondes et garantir l’arrêt en fin de durée et à l’arrêt du programme. |
@@ -71,3 +71,13 @@ Ces tâches complètent les exigences du projet. La priorité du prochain cours 
 - [Exigences corrigées EF01 à EF24](exigences_fonctionnelles.md)
 - [Inventaire et statuts du matériel](inventaire_materiel.md)
 - [Installation et lancement sur le Raspberry Pi](../raspberry_pi/README.md)
+
+## Ajout du BH1750
+
+- [x] Intégrer sa lecture réelle toutes les 60 s indépendamment du flotteur.
+- [x] Publier les mesures horodatées sur `ferixu/lumiere` via le thread existant et les enregistrer.
+- [x] Signaler une absence/lecture invalide sans inventer de lux; retenter à la prochaine minute.
+- [ ] Valider `i2cdetect -y 1`, le branchement 3,3 V / GND / SDA / SCL, les lectures et la transmission sur le Raspberry Pi.
+- [ ] Ajouter ultérieurement le cumul lumineux EF04 et les historiques.
+
+Les périodes locales du réservoir et de publication sont actuellement à 5 s et ont été conservées. Rétablir 600 s pour la lecture du réservoir afin de respecter EF05; la lumière reste à 60 s selon EF03.

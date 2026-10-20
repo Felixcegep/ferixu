@@ -10,12 +10,12 @@ La remise de la partie 1 vaut **10 %** et aura lieu le **20 octobre 2026**, avec
 
 Le dossier `raspberry_pi/` contient les deux programmes MQTT :
 
-- [publicateur_mqtt.py](raspberry_pi/publication_donnees/publicateur_mqtt.py) assure la communication MQTT; `main.py` lit l’interrupteur à flotteur dans le thread principal toutes les 10 minutes. Un thread séparé publie les nouvelles acquisitions sur `ferixu/eau` toutes les 10 secondes, avec leur horodatage UTC conservé.
-- [service_ingestion.py](raspberry_pi/ingestion/service_ingestion.py) s’abonne à ce topic, affiche les mesures reçues et les ajoute à `donnees/lectures_capteurs.jsonl`, à la racine du dépôt, comme dans la démo du cours.
+- [publicateur_mqtt.py](raspberry_pi/publication_donnees/publicateur_mqtt.py) assure la communication MQTT; `main.py` lit le flotteur et le BH1750 dans le thread principal, chacun à sa période. Un thread séparé publie les nouvelles acquisitions sur `ferixu/eau` et `ferixu/lumiere`, avec leur horodatage UTC conservé.
+- [service_ingestion.py](raspberry_pi/ingestion/service_ingestion.py) s’abonne à ces deux topics, affiche les mesures reçues et les ajoute à `donnees/lectures_capteurs.jsonl`, à la racine du dépôt, comme dans la démo du cours.
 
-Les deux programmes utilisent le broker MQTT local sur `localhost:1883` et se lancent dans deux terminaux distincts. Le flotteur est le seul capteur utilisé par `main.py`. Le feu est commandé à chaque lecture : rouge si le réservoir est insuffisant (EF12), éteint sinon.
+Les deux programmes utilisent le broker MQTT local sur `localhost:1883` et se lancent dans deux terminaux distincts. Le flotteur et le BH1750 sont utilisés par `main.py`. Le feu est commandé à chaque lecture : rouge si le réservoir est insuffisant (EF12), éteint sinon.
 
-Les pilotes du BH1750 et du STEMMA Soil Sensor sont présents, mais ils ne sont pas intégrés au programme de collecte actif. Le feu ARD-625 est intégré pour le scénario réservoir insuffisant d’EF12; la logique complète EF10 à EF13 reste à réaliser. L’humidité et la température du sol ne sont donc pas mesurées par le programme principal; la commande de la pompe n’est pas implémentée. La maquette NiceGUI est également simulée et n’est pas connectée au broker ni au matériel.
+Le BH1750 est intégré : lecture en lux toutes les 60 secondes, publication MQTT et enregistrement. Le STEMMA Soil Sensor reste hors de la collecte active. Le feu ARD-625 est intégré pour le scénario réservoir insuffisant d’EF12; la logique complète EF10 à EF13 reste à réaliser. L’humidité et la température du sol ne sont donc pas mesurées par le programme principal; la commande de la pompe n’est pas implémentée. La maquette NiceGUI est également simulée et n’est pas connectée au broker ni au matériel.
 
 La [documentation du projet](documentation/README.md) regroupe les composants, la fiche du basilic et l’[inventaire du matériel](documentation/inventaire_materiel.md). Les exigences prévues, leurs seuils et leurs règles sont détaillés dans [documentation/exigences_fonctionnelles.md](documentation/exigences_fonctionnelles.md). Les fonctions ci-dessus décrivent l’état réellement présent dans le code.
 
@@ -23,8 +23,8 @@ La [documentation du projet](documentation/README.md) regroupe les composants, l
 
 | Composant | Rôle prévu | État dans le code |
 | --- | --- | --- |
-| Interrupteur à flotteur SENS-112-200 | Détecter si le réservoir contient de l’eau | Lu et publié sur `ferixu/eau` toutes les 10 minutes |
-| BH1750 (#4681) | Mesurer la luminosité en lux sur I²C | Pilote présent; pas utilisé par `main.py` |
+| Interrupteur à flotteur SENS-112-200 | Détecter si le réservoir contient de l’eau | Lu et publié sur `ferixu/eau`; EF05 prévoit 600 s, configuration locale d’essai actuellement à 5 s |
+| BH1750 (#4681) | Mesurer la luminosité en lux sur I²C | Lu toutes les 60 s, publié sur `ferixu/lumiere` puis enregistré |
 | STEMMA Soil Sensor (#4026) | Mesurer l’humidité et la température du sol sur I²C | Pilote présent; pas encore utilisé par le programme de collecte |
 | Feu tricolore ARD-625 | Afficher l’état de la plante | Rouge si le réservoir est insuffisant; éteint sinon |
 | Relais STEMMA (#4409) et pompe 3 V (#4547) | Arroser selon les seuils et les commandes | Pas encore implémentés dans le programme actif |
@@ -53,3 +53,24 @@ uv run pytest -q frontend/tests/test_maquette_integration.py
 ```
 
 Le test pilote les pages et génère des captures dans `maquettes/`. Si aucun navigateur compatible n’est installé, installez Chromium avec `uv run playwright install chromium`.
+
+## Tester la luminosité
+
+Activer I²C et vérifier `i2cdetect -y 1` : le BH1750 Adafruit doit apparaître à `23` (adresse par défaut). Les branchements et commandes détaillés sont dans le [README Raspberry Pi](raspberry_pi/README.md#bh1750--lecture-réelle-et-mqtt).
+
+Démarrer l'ingestion depuis la racine, puis le collecteur depuis `raspberry_pi` :
+
+```bash
+source raspberry_pi/.venv/bin/activate
+python -m raspberry_pi.ingestion.service_ingestion
+```
+
+```bash
+source raspberry_pi/.venv/bin/activate
+cd raspberry_pi
+python main.py
+```
+
+La première lecture de chaque capteur est immédiate; le thread MQTT l'envoie à sa prochaine échéance. Une ligne `{"lux": ..., "horodatage": ...}` doit apparaître dans `donnees/lectures_capteurs.jsonl` à la racine. La luminosité est relue toutes les 60 s; le cumul quotidien et les historiques lumineux restent à réaliser. Les lectures matérielles et les branchements restent à valider sur le Pi.
+
+**Configuration d'essai actuelle :** réservoir et publication à 5 s, valeurs locales conservées. Pour respecter EF05 lors d'un fonctionnement normal, remettre `PERIODE_LECTURE_RESERVOIR = 600`. La lumière reste à `PERIODE_LECTURE_LUMIERE = 60`.
