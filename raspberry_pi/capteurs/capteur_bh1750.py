@@ -1,17 +1,25 @@
-# BH1750 (#4681)
+"""Pilote BH1750 structuré comme le CapteurVL53L1X de la démo du cours."""
+from datetime import datetime, timezone
+import math
 
-import time
-import board
-import adafruit_bh1750
-from pydantic import BaseModel, ConfigDict, Field
-
-
-SEUIL_LUMIERE_SUFFISANTE_LUX = 10_000
-SEUIL_LUMIERE_TRES_FAIBLE_LUX = 100
-INTERVALLE_SECONDES = 1
+from .capteur import Capteur
 
 
-class CapteurLumiere:
-    capteur = adafruit_bh1750.BH1750(board.I2C())
+class CapteurLumiere(Capteur):
+    def __init__(self, i2c, periode_lecture=60):
+        """Reçoit le bus du programme principal; période prévue par EF03 : 60 s."""
+        import adafruit_bh1750
+        super().__init__("BH1750", periode_lecture)
+        self._capteur = adafruit_bh1750.BH1750(i2c)
+
+    def lire(self) -> dict:
+        """Lit la luminosité en lux et horodate l'acquisition en UTC."""
+        horodatage = datetime.now(timezone.utc).isoformat()
+        lux = float(self._capteur.lux)
+        if not math.isfinite(lux) or lux < 0:
+            raise ValueError("Luminosité invalide.")
+        return {"lux": lux, "horodatage": horodatage}
+
     def get_lux(self):
-        return self.capteur.lux
+        """Conserve l'accès ponctuel du pilote existant."""
+        return self.lire()["lux"]

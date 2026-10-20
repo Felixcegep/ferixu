@@ -1,16 +1,16 @@
 # À faire au prochain cours — Pousse / Ferixu
 
-**État du dépôt consulté : 13 octobre 2026.**  
+**État mis à jour : 20 octobre 2026, après intégration du scénario EF12.**
 **Remise de la partie 1 : 20 octobre 2026 (10 %), démonstration en équipe.**
 
 Objectif du cours : obtenir une chaîne complète et démontrable **capteur réel → acquisition horodatée → publication → broker MQTT local → abonnement → fichier**, puis déclencher au moins un actionneur selon une exigence fonctionnelle.
 
 ## Ce qui est déjà présent
 
-- `raspberry_pi/main.py` lit le flotteur immédiatement, puis toutes les 10 minutes, et appelle le publicateur MQTT.
+- `raspberry_pi/main.py` lit le flotteur immédiatement, puis toutes les 10 minutes dans le thread principal. Comme dans la démo de la prof, un thread MQTT séparé publie les acquisitions en attente toutes les 10 secondes, avec une liste partagée protégée par `Lock` et un `Event` d’arrêt.
 - Le publicateur envoie l’état du réservoir sur `ferixu/eau`, avec un horodatage ISO 8601 en UTC et QoS 1.
 - Le subscriber reçoit ce topic et ajoute les messages à `donnees/lectures_capteurs.jsonl` en conservant leur horodatage.
-- Les pilotes du BH1750, du capteur de sol et du feu sont présents, mais ne sont pas intégrés au programme actif. Le fichier de la pompe ne contient pas encore d’implémentation.
+- Les pilotes du BH1750 et du capteur de sol restent hors du programme actif. Le feu est intégré pour le scénario réservoir insuffisant → rouge (EF12), éteint sinon. Le fichier de la pompe ne contient pas encore d’implémentation.
 - L’interface NiceGUI est une maquette simulée ; elle ne reçoit pas les mesures réelles et ne commande pas le matériel.
 
 **Ces éléments décrivent le code présent, pas un montage validé. Les essais matériels restent à effectuer.**
@@ -31,11 +31,11 @@ Objectif du cours : obtenir une chaîne complète et démontrable **capteur rée
 
 Le feu tricolore est indiqué « reçu » dans l’inventaire. Un premier scénario possible est **réservoir insuffisant → feu rouge (EF12)**.
 
-- [ ] Vérifier le câblage et l’alimentation du feu. Les broches présentes dans le pilote sont BCM 27 (rouge), 22 (jaune) et 23 (vert) ; elles restent à valider sur le montage.
-- [ ] Adapter le pilote : initialisation dans une instance, méthodes en `snake_case`, commentaires français et libération des GPIO à l’arrêt.
-- [ ] Séparer la décision de la commande du feu et intégrer le scénario EF12 au programme actif.
+- [ ] Vérifier le câblage et l’alimentation du feu. Les broches présentes dans le pilote sont BCM 23 (rouge), 22 (jaune) et 27 (vert) ; elles restent à valider sur le montage.
+- [x] Adapter le pilote : initialisation dans une instance avec `TrafficLights`, méthodes en `snake_case`, commentaires français et libération des GPIO à l’arrêt.
+- [x] Séparer la décision dans `logique_decision.py` et intégrer le scénario EF12 au programme actif.
 - [ ] Montrer le déclenchement du rouge en changeant réellement l’état du flotteur. Si une condition est simulée, préciser laquelle ; conserver une acquisition réelle pour la chaîne MQTT.
-- [ ] Prévoir l’extinction du feu à l’arrêt. Ne pas afficher un état vert à partir du seul niveau d’eau : EF10 exige aussi l’humidité et les heures de lumière.
+- [x] Prévoir l’extinction du feu à l’arrêt. Ne pas afficher un état vert à partir du seul niveau d’eau : EF10 exige aussi l’humidité et les heures de lumière.
 
 **Résultat attendu :** un actionneur physique branché et un déclenchement expliqué par une exigence. Le scénario EF12 seul ne constitue pas toute la logique EF10 à EF13.
 
@@ -43,7 +43,7 @@ Le feu tricolore est indiqué « reçu » dans l’inventaire. Un premier scéna
 
 - [ ] Gérer dans le subscriber un JSON invalide, un payload incomplet, un problème d’écriture du fichier et une connexion MQTT impossible, avec des messages compréhensibles.
 - [ ] Tester un broker indisponible et une lecture de capteur en erreur ; ne jamais remplacer une erreur par une mesure valide ou une autorisation d’arrosage.
-- [ ] Vérifier les pilotes avant leur intégration : éviter les initialisations matérielles au chargement des modules et confirmer leurs dépendances.
+- [x] Aligner les pilotes I²C sur `Capteur` avec bus fourni au constructeur, supprimer leurs initialisations matérielles à l’import et corriger les dépendances. Leur intégration et leur validation sur le Pi restent à faire.
 - [ ] Mettre à jour les README avec le montage réellement utilisé, les broches BCM/physiques, les alimentations, les bus, les topics, les payloads et les commandes vérifiées.
 - [ ] Corriger le lien `../EXIGENCES.md` du README Raspberry Pi vers `../documentation/exigences_fonctionnelles.md` et clarifier les instructions de lancement.
 - [ ] Préparer une courte procédure de démonstration : démarrage du broker, subscriber, collecte, changement du flotteur, consultation du fichier et déclenchement du feu.

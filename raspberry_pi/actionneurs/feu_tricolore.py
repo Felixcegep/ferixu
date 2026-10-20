@@ -1,34 +1,31 @@
-#Feu tricolore ARD-625
-
-from pydantic import BaseModel, ConfigDict, Field
-
-from gpiozero import LED
+"""Commande du feu ARD-625 avec GPIO Zero, broches en numérotation BCM."""
+from gpiozero import TrafficLights
 
 
 class FeuCirculation:
-    # mettre dans global :) config
-    del_rouge = LED(27)
-    del_jaune = LED(22)
-    del_verte = LED(23)
+    def __init__(self, pin_rouge, pin_jaune, pin_vert):
+        """Réserve les GPIO à la création de l'instance, feu initialement éteint."""
+        self._feu = TrafficLights(red=pin_rouge, amber=pin_jaune, green=pin_vert)
 
+    def allumer_rouge(self):
+        """Active le rouge seul; éteint le jaune et le vert."""
+        self._feu.value = (1, 0, 0)
 
-    def allumerRouge(self):
-        self.del_jaune.off()
-        self.del_verte.off()
-        self.del_rouge.on()
+    def allumer_jaune(self):
+        """Active le jaune seul."""
+        self._feu.value = (0, 1, 0)
 
-    def allumerJaune(self):
-        self.del_jaune.on()
-        self.del_verte.off()
-        self.del_rouge.off()
-
-    def allumerVert(self):
-        self.del_jaune.off()
-        self.del_verte.on()
-        self.del_rouge.off()
+    def allumer_vert(self):
+        """Active le vert seul."""
+        self._feu.value = (0, 0, 1)
 
     def eteindre(self):
-        self.del_jaune.off()
-        self.del_verte.off()
-        self.del_rouge.off()
+        """Éteint les trois couleurs."""
+        self._feu.off()
 
+    def fermer(self):
+        """Éteint le feu puis libère les GPIO, même si l'extinction échoue."""
+        try:
+            self.eteindre()
+        finally:
+            self._feu.close()
