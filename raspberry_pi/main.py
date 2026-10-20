@@ -11,6 +11,18 @@ from actionneurs import FeuCirculation
 from logique_decision import mettre_a_jour_feu
 from publication_donnees import PublicateurMQTT
 
+def mettre_a_jour_feu(feu, mesure):
+    """Eau insuffisante : rouge. Sinon éteint, car le sol et la lumière manquent.
+
+    Ce scénario couvre la condition réservoir d'EF12, pas toute la logique
+    EF10 à EF13. Un réservoir suffisant ne suffit pas pour autoriser le vert.
+    """
+    if mesure.get("etat") == "insuffisant" and mesure.get("vide") is True:
+        feu.allumer_rouge()
+    elif mesure.get("etat") == "suffisant" and mesure.get("vide") is False:
+        feu.allumer_vert()
+    else:
+        raise ValueError("État du réservoir invalide ou incohérent.")
 
 def publier_mesures_en_attente():
     """Copie les acquisitions partagées sous verrou, puis publie hors du verrou."""
