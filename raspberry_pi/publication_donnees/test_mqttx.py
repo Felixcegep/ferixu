@@ -1,25 +1,55 @@
-"""Diagnostic local explicite, sans identifiants ni connexion à l'importation.
+import json
+import time
 
-Depuis la racine : python -m raspberry_pi.publication_donnees.test_mqttx
-Nécessite le flotteur réel et le subscriber déjà démarré.
-"""
-from uuid import uuid4
-from contextlib import ExitStack
-from raspberry_pi import config
-from raspberry_pi.capteurs import Flotteur
-from raspberry_pi.publication_donnees import PublicateurMQTT
+import paho.mqtt.client as mqtt
 
+from datetime import datetime, timezone
 
-def main():
-    """Publie une vraie lecture horodatée sur le broker configuré."""
-    with ExitStack() as ressources:
-        flotteur = Flotteur(config.GPIO_FLOTTEUR)
-        ressources.callback(flotteur.fermer)
-        publicateur = PublicateurMQTT(f"ferixu-diagnostic-{uuid4().hex[:12]}")
-        ressources.callback(publicateur.deconnecter)
-        publicateur.connecter()
-        publicateur.publier(config.TOPIC_EAU, flotteur.lire())
+import sys
+from pathlib import Path
+
+RACINE_PROJET = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(RACINE_PROJET))
+
+from capteurs.flotteur import Flotteur
 
 
-if __name__ == "__main__":
-    main()
+BROKER = "mdbf12d4.ala.us-east-1.emqxsl.com"
+PORT = 8883
+USERNAME = "pub-pi"
+PASSWORD = "12345"
+TOPIC = "ferixu/eau"
+
+flotteur = Flotteur()
+
+
+def on_connect(client, userdata, flags, reason_code, properties):
+    # Affiche "Success" ou la raison de l'échec
+    print(f"Connexion : {reason_code}")
+
+
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="test-emqx")
+client.on_connect = on_connect
+client.username_pw_set(USERNAME, PASSWORD)
+client.tls_set(ca_certs="emqxsl-ca.crt")
+client.connect(BROKER, PORT, 60)
+client.loop_start()
+
+for i in range(5):
+    payloadFlotteur = {
+        "vide": not flotteur.eau,
+        "horodatage": datetime.now(timezone.utc).isoformat(),
+    }
+
+    client.publish(
+        TOPIC,
+        json.dumps(payloadFlotteur)
+    )
+
+    print("Flotteur envoyé :", payloadFlotteur)
+
+    time.sleep(2)
+
+client.loop_stop()
+client.disconnect()
+

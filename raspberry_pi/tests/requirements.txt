@@ -1,4 +1,0 @@
-# Tests logiciels sur ordinateur, sans bibliothèques matérielles.
-pytest>=8,<10
-paho-mqtt>=2.1,<3
-python-dotenv>=1.0,<2

@@ -1,3 +1,1 @@
-# Acquisition et ingestion (installer sur le Raspberry Pi).
--r raspberry_pi/requirements.txt
-# La maquette utilise séparément frontend/requirements.txt.
+python-dotenv==1.2.4

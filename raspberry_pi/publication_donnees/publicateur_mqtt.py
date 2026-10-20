@@ -5,8 +5,7 @@ import threading
 
 import paho.mqtt.client as mqtt
 
-from raspberry_pi import config
-from raspberry_pi.mesures import valider_mesure
+import config
 
 
 class PublicateurMQTT:
@@ -17,8 +16,6 @@ class PublicateurMQTT:
         self._erreur_connexion = None
         self._client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
                                    client_id=client_id)
-        if config.MQTT_UTILISATEUR:
-            self._client.username_pw_set(config.MQTT_UTILISATEUR, config.MQTT_MOT_DE_PASSE)
         self._client.on_connect = self._lors_connexion
         self._client.on_disconnect = self._lors_deconnexion
 
@@ -48,7 +45,8 @@ class PublicateurMQTT:
 
     def publier(self, topic: str, donnees: dict) -> None:
         """Conserve l'horodatage UTC d'acquisition et attend l'accusé QoS 1."""
-        valider_mesure(topic, donnees)
+        if not donnees.get("horodatage"):
+            raise ValueError("La mesure doit être horodatée lors de l'acquisition.")
         if not self._connexion.is_set() or self._erreur_connexion is not None:
             raise ConnectionError("Le publicateur MQTT n'est pas connecté.")
         payload = json.dumps(donnees, ensure_ascii=False, allow_nan=False)

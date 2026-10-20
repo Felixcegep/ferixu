@@ -1,54 +1,73 @@
-# Suivi de la remise — Pousse / Ferixu
+# À faire au prochain cours — Pousse / Ferixu
 
-**Mise à jour : 20 octobre 2026.** Partie 1 : 10 %, démonstration en équipe.
+**État du dépôt consulté : 13 octobre 2026.**  
+**Remise de la partie 1 : 20 octobre 2026 (10 %), démonstration en équipe.**
 
-## Corrections logicielles effectuées
+Objectif du cours : obtenir une chaîne complète et démontrable **capteur réel → acquisition horodatée → publication → broker MQTT local → abonnement → fichier**, puis déclencher au moins un actionneur selon une exigence fonctionnelle.
 
-- Pilotes sans initialisation matérielle à l'import; capteurs héritant de `Capteur`.
-- Broches BCM et paramètres MQTT regroupés dans `raspberry_pi/config.py`, lecture du `.env` à la racine.
-- Flotteur horodaté en UTC; lecture immédiate puis toutes les 600 s.
-- Décision EF12 séparée : réservoir insuffisant → feu rouge. Aucune déduction de vert/jaune sans les autres mesures nécessaires.
-- BH1750 optionnel toutes les 60 s et sol optionnel toutes les 600 s; calibration explicite avant publication d'un pourcentage.
-- Validation du payload et des valeurs, abonnement QoS 1, erreurs de décodage et d'écriture signalées sans arrêter l'ingestion.
-- Identifiants retirés du diagnostic MQTT; réseau et GPIO uniquement lors d'un lancement explicite.
-- Pilote de pompe disponible : refus sans eau, durée maximale de 3 s, arrêt et vérifications du réservoir; pas de commande de pompe dans le programme principal.
-- Capteurs absents isolés, sans mesure inventée; nouvelle tentative à la période normale et rouge sur erreur du réservoir si le feu fonctionne.
-- README d'installation et de démonstration mis à jour.
+## Ce qui est déjà présent
 
-Les tests utilisent des GPIO simulés. L'essai avec Mosquitto local valide le transport et le fichier, **pas le matériel**.
+- `raspberry_pi/main.py` lit le flotteur immédiatement, puis toutes les 10 minutes, et appelle le publicateur MQTT.
+- Le publicateur envoie l’état du réservoir sur `ferixu/eau`, avec un horodatage ISO 8601 en UTC et QoS 1.
+- Le subscriber reçoit ce topic et ajoute les messages à `donnees/lectures_capteurs.jsonl` en conservant leur horodatage.
+- Les pilotes du BH1750, du capteur de sol et du feu sont présents, mais ne sont pas intégrés au programme actif. Le fichier de la pompe ne contient pas encore d’implémentation.
+- L’interface NiceGUI est une maquette simulée ; elle ne reçoit pas les mesures réelles et ne commande pas le matériel.
 
-## Priorités avant la présentation
+**Ces éléments décrivent le code présent, pas un montage validé. Les essais matériels restent à effectuer.**
 
-- [ ] Confirmer le Raspberry Pi 4, les composants reçus et les alternatives réellement utilisées. Résoudre la référence du flotteur SENS-112-200 / SENS-112-250 et la disponibilité des câbles.
-- [ ] Vérifier le flotteur sur BCM16 (physique 36), la masse et les deux états réels. Le contact fermé doit correspondre à « insuffisant » pour ce code.
-- [ ] Vérifier le feu : rouge BCM23 / physique 16, jaune BCM22 / physique 15, vert BCM27 / physique 13; confirmer résistances, polarité et alimentation du module réel.
-- [ ] Installer le `.venv` et les dépendances sur le Pi avec les commandes du [README Raspberry Pi](../raspberry_pi/README.md); exécuter `python -m pip check`.
-- [ ] Configurer le broker local, le démarrer, puis lancer l'ingestion et attendre sa confirmation d'abonnement avant la collecte.
-- [ ] Démontrer une vraie lecture du flotteur, le message MQTT, le fichier JSONL avec le même horodatage et le feu rouge quand l'eau est insuffisante.
-- [ ] Comparer le nombre de messages et les horodatages : aucune perte observable durant l'essai; ne pas assimiler QoS 1 à une écriture garantie sur disque.
-- [ ] Vérifier `Ctrl+C`, l'extinction du feu et la libération des GPIO. Ne pas lancer deux processus concurrents sur les mêmes broches.
-- [ ] Si le BH1750 et le sol sont présentés : confirmer adresses I²C, modèles réels, dépendances, valeurs et calibration. Sans calibration, annoncer clairement une humidité brute et l'absence de validation d'EF01 en %.
-- [ ] Noter les résultats matériels et toute simulation utilisée; les tests automatiques ne remplacent pas l'acquisition réelle.
+## Priorité 1 — Valider la collecte complète sur le Raspberry Pi
 
-## Fonctions du projet restant à intégrer
+- [ ] Confirmer le matériel réellement disponible et les alternatives utilisées : flotteur, relais, capteur de sol et tube. Vérifier la référence du flotteur (SENS-112-200 ou SENS-112-250) et la disponibilité des câbles Dupont indiqués « non reçu ».
+- [ ] Vérifier le branchement du flotteur sur GPIO **BCM 16**, son alimentation et l’interprétation du contact : le code considère un contact fermé comme un réservoir insuffisant.
+- [ ] Créer ou vérifier le `.venv`, installer avec `python -m pip install -r requirements.txt` et confirmer que les bibliothèques correspondent aux composants effectivement utilisés.
+- [ ] Démarrer Mosquitto, puis le subscriber, puis `main.py`. Le lancement actuel nécessite deux terminaux Python ; `main.py` ne démarre pas le subscriber.
+- [ ] Tester les deux états réels du flotteur et vérifier leur réception sur `ferixu/eau` ainsi que leur écriture dans le fichier.
+- [ ] Comparer les horodatages et le nombre de messages publiés, reçus et enregistrés pendant l’essai ; vérifier qu’aucune perte n’est observable.
+- [ ] Vérifier l’arrêt avec `Ctrl+C` et la libération du GPIO.
+
+**Résultat attendu :** un montage visible, une mesure réelle, un message MQTT reçu et une ligne enregistrée avec le même horodatage.
+
+## Priorité 2 — Ajouter un actionneur pour la démonstration
+
+Le feu tricolore est indiqué « reçu » dans l’inventaire. Un premier scénario possible est **réservoir insuffisant → feu rouge (EF12)**.
+
+- [ ] Vérifier le câblage et l’alimentation du feu. Les broches présentes dans le pilote sont BCM 27 (rouge), 22 (jaune) et 23 (vert) ; elles restent à valider sur le montage.
+- [ ] Adapter le pilote : initialisation dans une instance, méthodes en `snake_case`, commentaires français et libération des GPIO à l’arrêt.
+- [ ] Séparer la décision de la commande du feu et intégrer le scénario EF12 au programme actif.
+- [ ] Montrer le déclenchement du rouge en changeant réellement l’état du flotteur. Si une condition est simulée, préciser laquelle ; conserver une acquisition réelle pour la chaîne MQTT.
+- [ ] Prévoir l’extinction du feu à l’arrêt. Ne pas afficher un état vert à partir du seul niveau d’eau : EF10 exige aussi l’humidité et les heures de lumière.
+
+**Résultat attendu :** un actionneur physique branché et un déclenchement expliqué par une exigence. Le scénario EF12 seul ne constitue pas toute la logique EF10 à EF13.
+
+## Priorité 3 — Corriger les erreurs de base et préparer la remise
+
+- [ ] Gérer dans le subscriber un JSON invalide, un payload incomplet, un problème d’écriture du fichier et une connexion MQTT impossible, avec des messages compréhensibles.
+- [ ] Tester un broker indisponible et une lecture de capteur en erreur ; ne jamais remplacer une erreur par une mesure valide ou une autorisation d’arrosage.
+- [ ] Vérifier les pilotes avant leur intégration : éviter les initialisations matérielles au chargement des modules et confirmer leurs dépendances.
+- [ ] Mettre à jour les README avec le montage réellement utilisé, les broches BCM/physiques, les alimentations, les bus, les topics, les payloads et les commandes vérifiées.
+- [ ] Corriger le lien `../EXIGENCES.md` du README Raspberry Pi vers `../documentation/exigences_fonctionnelles.md` et clarifier les instructions de lancement.
+- [ ] Préparer une courte procédure de démonstration : démarrage du broker, subscriber, collecte, changement du flotteur, consultation du fichier et déclenchement du feu.
+- [ ] Noter les résultats des essais, les simulations utilisées et ce qui reste à valider sur le matériel.
+
+## Suite du projet — Fonctions encore manquantes
+
+Ces tâches complètent les exigences du projet. La priorité du prochain cours reste la chaîne de démonstration ; la remise demande aussi le code des objets disponibles.
 
 | Partie | Travail restant |
 | --- | --- |
-| Sol — EF01, EF02 | Calibrer le capteur réel, confirmer la conversion et valider les lectures simultanées toutes les 10 min sur le Pi |
-| Luminosité — EF03, EF04 | Valider les lectures toutes les 60 s; ajouter le cumul quotidien à partir de 10 000 lux |
-| Réservoir — EF05 | Valider les contacts; intégrer les mesures avant/après pompe au flux publié lors de l'intégration du contrôleur |
-| Pompe — EF06 à EF09 | Identifier le relais alternatif; intégrer décision, mode automatique, délai de 30 min, maximum de 6 activations par 24 h et historique; pilote seul insuffisant |
-| Feu — EF10 à EF13 | Compléter les règles avec humidité et cumul lumineux, priorité rouge, seuils de 3,6 h et 6 h |
-| Contrôles — EF14 à EF17 | Relier les commandes à un contrôleur réel avec refus sans eau et tests limités à 3 s |
-| Interface — EF18 à EF23 | Remplacer les données simulées, graphiques à deux axes du sol, historique lumineux et informations d'arrosage |
-| Paramètres — EF24 | Faire utiliser les paramètres persistés par le système réel |
-| Autres objets reçus | OLED et buzzers non implémentés; préciser leur rôle si retenus dans le périmètre présenté |
-
-La démo minimale n'exige pas une interface terminée. Elle ne dispense pas de remettre le code des objets disponibles prévus dans le périmètre : annoncer précisément ce qui est présent, intégré, testé par simulation et validé physiquement.
+| Sol — EF01, EF02 | Intégrer l’humidité et la température ensemble toutes les 10 minutes, avec horodatage. Identifier le capteur alternatif et documenter sa calibration avant toute conversion en %. |
+| Luminosité — EF03, EF04 | Intégrer une mesure par minute, le seuil de 10 000 lux et le cumul quotidien. Vérifier l’intervalle minimal dans la documentation du matériel ; la constante actuelle de 1 seconde ne correspond pas à la fréquence fonctionnelle attendue. |
+| Réservoir — EF05 | Synchroniser sa lecture avec le sol et ajouter les vérifications immédiatement avant et après chaque activation de la pompe. |
+| Pompe et relais — EF06 à EF09 | Implémenter les pilotes et la décision : humidité sous 30 %, mode automatique actif, eau suffisante, 3 secondes, délai minimal de 30 minutes et maximum de 6 arrosages automatiques par période de 24 heures. |
+| Sécurité de la pompe — EF07, EF14, EF16 | Refuser toute activation si l’eau est insuffisante ou si sa lecture échoue, y compris en manuel et en test. Limiter le test à 3 secondes et garantir l’arrêt en fin de durée et à l’arrêt du programme. |
+| Feu complet — EF10 à EF13 | Combiner humidité, lumière et réservoir ; appliquer la priorité au rouge, les seuils de 3,6 h et 6 h et le retour à la couleur appropriée à la prochaine lecture. |
+| Contrôles — EF14 à EF17 | Relier les boutons au matériel : arrosage manuel, mode automatique, test pompe/relais et test des trois couleurs. |
+| Interface — EF18 à EF23 | Remplacer les données simulées par les mesures horodatées ; afficher les graphiques réels (sol à deux axes et luminosité), les 7 derniers jours de lumière et les informations d’arrosage. |
+| Paramètres — EF24 | Enregistrer les paramètres modifiés et les faire utiliser par la logique réelle du système. |
 
 ## Références
 
-- [Consignes de remise](remise_partie_1.md)
-- [Exigences corrigées](exigences_fonctionnelles.md)
-- [Inventaire](inventaire_materiel.md)
-- [Installation et démonstration](../raspberry_pi/README.md)
+- [Consignes de la remise et démonstration](remise_partie_1.md)
+- [Exigences corrigées EF01 à EF24](exigences_fonctionnelles.md)
+- [Inventaire et statuts du matériel](inventaire_materiel.md)
+- [Installation et lancement sur le Raspberry Pi](../raspberry_pi/README.md)

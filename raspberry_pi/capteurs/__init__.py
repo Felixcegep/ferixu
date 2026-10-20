@@ -1,7 +1,7 @@
 """Composants disponibles dans le paquet ``capteurs``.
 
-Les pilotes et leurs bibliothèques sont chargés à la demande. Le matériel
-n'est initialisé que lors de la construction explicite d'un capteur.
+Les pilotes de capteurs peuvent accéder au matériel dès leur import. On les
+importe donc uniquement lorsqu'un composant est demandé explicitement.
 """
 
 from importlib import import_module
@@ -10,14 +10,14 @@ __all__ = [
     "Capteur",
     "CapteurLumiere",
     "Flotteur",
-    "CapteurSol",
+    "SoilSensor",
 ]
 
 _MODULES = {
     "Capteur": ".capteur",
     "CapteurLumiere": ".capteur_bh1750",
     "Flotteur": ".flotteur",
-    "CapteurSol": ".capteur_sol",
+    "SoilSensor": ".capteur_sol",
 }
 
 
