@@ -8,7 +8,6 @@ import threading
 import config
 from capteurs import Flotteur
 from actionneurs import FeuCirculation
-from logique_decision import mettre_a_jour_feu
 from publication_donnees import PublicateurMQTT
 
 def mettre_a_jour_feu(feu, mesure):
